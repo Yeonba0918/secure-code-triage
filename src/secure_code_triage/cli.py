@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .render import render_json, render_markdown
+from .render import render_json, render_markdown, render_sarif
 from .scanner import SEVERITIES, SEVERITY_RANK, scan_repository
 
 
@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--format",
-        choices=("markdown", "json"),
+        choices=("markdown", "json", "sarif"),
         default="markdown",
         help="Output format. Defaults to markdown.",
     )
@@ -62,7 +62,12 @@ def main(argv: list[str] | None = None) -> int:
         include_hidden=args.include_hidden,
         max_bytes=args.max_bytes,
     )
-    output = render_json(report) if args.format == "json" else render_markdown(report)
+    if args.format == "json":
+        output = render_json(report)
+    elif args.format == "sarif":
+        output = render_sarif(report)
+    else:
+        output = render_markdown(report)
 
     if args.output:
         args.output.write_text(output, encoding="utf-8")

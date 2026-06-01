@@ -34,6 +34,12 @@ Write JSON:
 secure-code-triage /path/to/repo --format json
 ```
 
+Write SARIF for code scanning integrations:
+
+```bash
+secure-code-triage /path/to/repo --format sarif -o secure-code-triage.sarif
+```
+
 Use it in CI and fail on high severity findings:
 
 ```bash

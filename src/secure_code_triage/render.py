@@ -39,6 +39,55 @@ def render_json(report: Report) -> str:
     return json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
 
 
+def render_sarif(report: Report) -> str:
+    rules = {}
+    results = []
+    for finding in report.findings:
+        rules[finding.rule_id] = {
+            "id": finding.rule_id,
+            "name": finding.title,
+            "shortDescription": {"text": finding.title},
+            "help": {"text": finding.recommendation},
+            "properties": {
+                "severity": finding.severity,
+                "tags": list(finding.tags),
+            },
+        }
+        results.append(
+            {
+                "ruleId": finding.rule_id,
+                "level": _sarif_level(finding.severity),
+                "message": {"text": f"{finding.title}: {finding.evidence}"},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": finding.path},
+                            "region": {"startLine": finding.line},
+                        }
+                    }
+                ],
+            }
+        )
+
+    payload = {
+        "version": "2.1.0",
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "secure-code-triage",
+                        "informationUri": "https://github.com/Yeonba0918/secure-code-triage",
+                        "rules": list(rules.values()),
+                    }
+                },
+                "results": results,
+            }
+        ],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+
 def _render_finding(finding: Finding) -> list[str]:
     return [
         f"- {finding.severity.title()} `{finding.rule_id}` at `{finding.path}:{finding.line}`",
@@ -46,3 +95,11 @@ def _render_finding(finding: Finding) -> list[str]:
         f"  Evidence: {finding.evidence}",
         f"  Fix: {finding.recommendation}",
     ]
+
+
+def _sarif_level(severity: str) -> str:
+    if severity in {"critical", "high"}:
+        return "error"
+    if severity == "medium":
+        return "warning"
+    return "note"
